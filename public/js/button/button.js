@@ -1,9 +1,9 @@
-
 import { usePayPalPromise } from './promise';
 import { detectLightboxEligibility, enableLightbox } from './lightbox';
 import { determineLocale } from './locale';
 import { persistAccessToken } from './user';
 import { setupLoginPreRender, getAccessToken, shouldPrefetchLogin } from './login';
+import { renderCardExperience } from './card';
 import { renderCheckout } from './checkout';
 import { KEY_CODES } from './constants';
 import { getButtonFunding } from './api';
@@ -27,7 +27,11 @@ function clickButton(event, { fundingSource = 'paypal', card }) {
         });
     }
 
-    renderCheckout({ fundingSource });
+    if (!card) {
+        renderCheckout({ fundingSource });
+    } else {
+        renderCardExperience({ fundingSource, card });
+    }
 
     if (window.xprops.onClick) {
         window.xprops.onClick({ fundingSource, card });

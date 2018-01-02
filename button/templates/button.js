@@ -72,6 +72,7 @@ export let buttonTemplate = (req, ctx) => {
 
     return `
         <body>
+            <div id="cardExp"></div>
             ${ buttonHTML }
 
             <script src="${ config.urls.incontextScript }/checkout${ meta.version ? '.' : '' }${ meta.version ? meta.version : '' }.js" data-paypal-checkout data-no-bridge data-state="ppxo_meta" data-env="${ meta.env }" ${ stageProp ? stageProp : '' }}></script>

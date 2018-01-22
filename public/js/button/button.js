@@ -8,6 +8,7 @@ import { renderCheckout } from './checkout';
 import { KEY_CODES } from './constants';
 import { getButtonFunding } from './api';
 import { querySelectorAll } from './util';
+import { payment } from './paymentRequest';
 
 function clickButton(event, { fundingSource = 'paypal', card }) {
     event.preventDefault();
@@ -30,7 +31,14 @@ function clickButton(event, { fundingSource = 'paypal', card }) {
     if (!card) {
         renderCheckout({ fundingSource });
     } else {
-        renderCardExperience({ fundingSource, card });
+        payment.canMakePayment()
+            .then(isAvailable => {
+                if (isAvailable) {
+                    payment.show();
+                } else {
+                    renderCardExperience({ fundingSource, card });
+                }
+            });
     }
 
     if (window.xprops.onClick) {

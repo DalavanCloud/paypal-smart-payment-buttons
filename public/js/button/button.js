@@ -2,13 +2,17 @@ import { usePayPalPromise } from './promise';
 import { detectLightboxEligibility, enableLightbox } from './lightbox';
 import { determineLocale } from './locale';
 import { persistAccessToken } from './user';
-import { setupLoginPreRender, getAccessToken, shouldPrefetchLogin } from './login';
+import {
+    setupLoginPreRender,
+    getAccessToken,
+    shouldPrefetchLogin
+} from './login';
 import { renderCardExperience } from './card';
 import { renderCheckout } from './checkout';
 import { KEY_CODES } from './constants';
 import { getButtonFunding } from './api';
 import { querySelectorAll } from './util';
-import { payment } from './paymentRequest';
+import { payment, guestEligibilityCheck } from './paymentRequest';
 
 function clickButton(event, { fundingSource = 'paypal', card }) {
     event.preventDefault();
@@ -17,7 +21,6 @@ function clickButton(event, { fundingSource = 'paypal', card }) {
     if (shouldPrefetchLogin()) {
         enableLightbox();
         let accessTokenGetter = getAccessToken();
-
         accessTokenGetter.then(accessToken => {
             persistAccessToken(accessToken);
         });
@@ -31,13 +34,46 @@ function clickButton(event, { fundingSource = 'paypal', card }) {
     if (!card) {
         renderCheckout({ fundingSource });
     } else {
-        payment.canMakePayment()
-            .then(isAvailable => {
-                if (isAvailable) {
-                    payment.show();
-                } else {
+        window.xprops
+            .payment()
+            .then(accessToken => {
+                persistAccessToken(accessToken);
+                return accessToken;
+            })
+            .then(accessToken => {
+                // make API call to check flow eligibility
+                return guestEligibilityCheck({ token: accessToken });
+            })
+            .then(res => res.json())
+            .then(res => {
+                console.log('res', res);
+                return res.data.guestFlowCheck;
+            })
+            .then(({ isHostFieldAllowed, isGuestAllowed }) => {
+                if (isHostFieldAllowed) {
+                    // render zombo
                     renderCardExperience({ fundingSource, card });
+                    return;
                 }
+
+                if (isGuestAllowed) {
+                    // use request payment api
+                    // payment.show();
+                    payment.canMakePayment().then(isAvailable => {
+                        if (isAvailable) {
+                            payment.show();
+                        } else {
+                            // go to xoon guest checkout
+                            renderCheckout({ fundingSource });
+                        }
+                    });
+                    return;
+                }
+
+                // TODO: render a button to go to xoon since we cannot open
+                // new popup because this check is asynchonous
+                // go to xoon signup
+                renderCheckout({ fundingSource });
             });
     }
 
@@ -54,7 +90,10 @@ export function setupButton() {
         return;
     }
 
-    if (!window.paypal && (!window.name || window.name.indexOf('xcomponent__ppbutton') === -1)) {
+    if (
+        !window.paypal &&
+        (!window.name || window.name.indexOf('xcomponent__ppbutton') === -1)
+    ) {
         return;
     }
 
@@ -77,7 +116,6 @@ export function setupButton() {
     });
 
     return window.paypal.Promise.all([
-
         detectLightboxEligibility(),
 
         determineLocale().then(locale => {
@@ -86,7 +124,11 @@ export function setupButton() {
         }),
 
         getButtonFunding().then(funding => {
-            if (window.xprops.funding && window.xprops.funding.remember && funding.eligible.length) {
+            if (
+                window.xprops.funding &&
+                window.xprops.funding.remember &&
+                funding.eligible.length
+            ) {
                 window.xprops.funding.remember(funding.eligible);
             }
         })

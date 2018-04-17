@@ -1,9 +1,9 @@
 {
   "name": "xo-buttonjs",
-  "version": "1.1.0-alpha1.0",
+  "version": "1.1.0-alpha1.3",
   "publishConfig": {
     "tag": "alpha",
-    "registry": "http://npm.paypal.com"
+    "registry": "https://npm.paypal.com"
   },
   "description": "Serverside rendered ButtonJS",
   "main": "index.js",
@@ -93,9 +93,6 @@
   "pre-commit": [
     "test"
   ],
-  "publishConfig": {
-    "registry": "http://npm.paypal.com"
-  },
   "license": "PayPal",
   "author": "DL-PP-Hermes-Integration@paypal.com"
 }
